@@ -1,0 +1,66 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Configuration and data directories
+/config/*
+!/config/.gitkeep
+
+# Upload directory
+/upload/*
+!/upload/.gitkeep
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Thumbnails and cache
+thumbs/
+cache/
+
+# Backend (Go)
+/backend/server
+/backend/awesome-sharing
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Frontend (Node.js)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+/frontend/build/
+/frontend/.env.local
+/frontend/.env.*.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/pnpm-debug.log*
+/frontend/.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+backend/config
+backend/upload
+
+# OS
+Thumbs.db
+.DS_Store
+CLAUDE.local.md
