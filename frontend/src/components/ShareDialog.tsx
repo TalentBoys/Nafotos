@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Copy, Check, Lock, Clock, Eye, Shield } from 'lucide-react'
 import { shareAPI, type CreateShareRequest } from '@/services/shares'
@@ -83,9 +84,21 @@ export default function ShareDialog({ fileId, fileName, onClose }: ShareDialogPr
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center"
+      style={{ zIndex: 10001, pointerEvents: 'auto' }}
+      onClick={(e) => {
+        // 点击背景关闭
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4"
+        style={{ pointerEvents: 'auto' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold">{t('share.title')}</h2>
@@ -231,6 +244,7 @@ export default function ShareDialog({ fileId, fileName, onClose }: ShareDialogPr
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
