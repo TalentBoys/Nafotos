@@ -64,3 +64,5 @@ backend/upload
 Thumbs.db
 .DS_Store
 CLAUDE.local.md
+
+testdata

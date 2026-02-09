@@ -152,7 +152,10 @@ func (fs *FileScanner) indexFile(folderID int64, rootPath, filePath string) erro
 	`, folderID, relativePath).Scan(&existingID)
 
 	if err == nil {
-		// File already indexed in this folder
+		// File already indexed - check if dimensions are missing
+		if err := fs.fixMissingDimensions(existingID, filePath); err != nil {
+			log.Printf("Warning: Failed to fix missing dimensions for file %d: %v", existingID, err)
+		}
 		return nil
 	}
 
@@ -197,6 +200,70 @@ func (fs *FileScanner) indexFile(folderID int64, rootPath, filePath string) erro
 	}
 
 	log.Printf("Indexed: %s (folder ID: %d)", filePath, folderID)
+	return nil
+}
+
+// fixMissingDimensions checks if a file has missing width/height and attempts to fix it
+func (fs *FileScanner) fixMissingDimensions(fileID int64, filePath string) error {
+	// Check if this is an image file
+	ext := strings.ToLower(filepath.Ext(filePath))
+	if strings.Contains(".mp4.mov.avi.mkv.webm.m4v", ext) {
+		// Skip video files for now
+		return nil
+	}
+
+	// Check current dimensions in photo_metadata
+	var width, height int
+	err := fs.db.QueryRow(`
+		SELECT width, height FROM photo_metadata WHERE file_id = ?
+	`, fileID).Scan(&width, &height)
+
+	if err != nil {
+		// No metadata record exists, try to create one
+		info, err := os.Stat(filePath)
+		if err != nil {
+			return err
+		}
+		return fs.savePhotoMetadata(fileID, filePath, info.ModTime())
+	}
+
+	// If dimensions are valid, no need to fix
+	if width > 0 && height > 0 {
+		return nil
+	}
+
+	// Dimensions are missing, try to get them
+	log.Printf("Fixing missing dimensions for file %d: %s", fileID, filePath)
+
+	newWidth, newHeight := 0, 0
+
+	// Try EXIF first
+	exifData, err := exif.ExtractEXIF(filePath)
+	if err == nil && exifData.Width > 0 && exifData.Height > 0 {
+		newWidth, newHeight = exifData.Width, exifData.Height
+	}
+
+	// Fallback to GetDimensions
+	if newWidth == 0 || newHeight == 0 {
+		if w, h, err := GetDimensions(filePath); err == nil {
+			newWidth, newHeight = w, h
+		} else {
+			log.Printf("Failed to get dimensions for %s: %v", filePath, err)
+			return err
+		}
+	}
+
+	// Update the database
+	if newWidth > 0 && newHeight > 0 {
+		_, err = fs.db.Exec(`
+			UPDATE photo_metadata SET width = ?, height = ? WHERE file_id = ?
+		`, newWidth, newHeight, fileID)
+		if err != nil {
+			return err
+		}
+		log.Printf("Fixed dimensions for file %d: %dx%d", fileID, newWidth, newHeight)
+	}
+
 	return nil
 }
 

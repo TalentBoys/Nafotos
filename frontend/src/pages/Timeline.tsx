@@ -113,6 +113,7 @@ export default function Timeline() {
               </h2>
               <FileGrid
                 files={dateFiles}
+                allFiles={files}
                 selectedFileIds={selectedFileIds}
                 onSelectionChange={setSelectedFileIds}
               />

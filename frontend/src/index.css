@@ -53,3 +53,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Lightbox custom toolbar button styles */
+.yarl__button {
+  @apply p-2 rounded-lg text-white hover:bg-white/20 transition-colors;
+}
+
+/* Lightbox push sidebar support */
+.yarl__root {
+  transition: right 0.3s ease-in-out !important;
+}
+
+.yarl__root.sidebar-open {
+  right: 320px !important;
+}
