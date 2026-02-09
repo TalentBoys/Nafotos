@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { RowsPhotoAlbum, RenderPhotoContext } from 'react-photo-album'
 import 'react-photo-album/rows.css'
 
-import Lightbox from 'yet-another-react-lightbox'
+import Lightbox, { RenderSlideProps, isImageSlide } from 'yet-another-react-lightbox'
 import Video from 'yet-another-react-lightbox/plugins/video'
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
@@ -15,11 +15,52 @@ import type { File } from '@/types'
 import { fileAPI } from '@/services/api'
 import { Play, Download, Info, Share2, X } from 'lucide-react'
 import { format } from 'date-fns'
-import { filesToPhotos, filesToSlides, ExtendedPhoto } from '@/utils/photoAdapter'
+import { filesToPhotos, filesToSlides, ExtendedPhoto, ExtendedSlide } from '@/utils/photoAdapter'
 import ShareDialog from '@/components/ShareDialog'
 
 const cn = (...classes: (string | boolean | undefined)[]) => {
   return classes.filter(Boolean).join(' ')
+}
+
+// 渐进式加载图片组件
+function ProgressiveImage({ slide }: { slide: ExtendedSlide }) {
+  const [currentSrc, setCurrentSrc] = useState(slide.src)
+  const [isLoading, setIsLoading] = useState(!!slide.originalSrc)
+
+  useEffect(() => {
+    // 重置状态当 slide 改变时
+    setCurrentSrc(slide.src)
+    setIsLoading(!!slide.originalSrc)
+
+    // 如果有原图 URL，静默加载
+    if (slide.originalSrc) {
+      const img = new Image()
+      img.onload = () => {
+        setCurrentSrc(slide.originalSrc!)
+        setIsLoading(false)
+      }
+      img.onerror = () => {
+        setIsLoading(false)
+      }
+      img.src = slide.originalSrc
+    }
+  }, [slide.src, slide.originalSrc])
+
+  return (
+    <div className="yarl__slide_image_container" style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img
+        src={currentSrc}
+        alt={slide.alt || ''}
+        className="yarl__slide_image"
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+      />
+      {isLoading && (
+        <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', padding: '8px 16px', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: 8, fontSize: 14 }}>
+          Loading original...
+        </div>
+      )}
+    </div>
+  )
 }
 
 function formatFileSize(bytes: number): string {
@@ -414,6 +455,15 @@ export default function FileGrid({
             </div>,
             'close',
           ],
+        }}
+        render={{
+          slide: ({ slide }) => {
+            // 只对图片类型使用渐进式加载
+            if (isImageSlide(slide)) {
+              return <ProgressiveImage slide={slide as ExtendedSlide} />
+            }
+            return undefined // 使用默认渲染
+          },
         }}
         className={showSidebar ? 'sidebar-open' : ''}
         styles={{
