@@ -92,6 +92,7 @@ func SetupRoutesV2(
 		protected.Get("/files/:id/thumbnail", handler.GetFileThumbnail)
 		protected.Get("/files/:id/download", handler.DownloadFile)
 		protected.Get("/timeline", handler.GetTimeline)
+		protected.Get("/timeline/years", handler.GetTimelineYears)
 		protected.Get("/search", handler.SearchFiles)
 		protected.Get("/mount-points", handler.GetMountPoints)
 		protected.Post("/scan", handler.TriggerScan)

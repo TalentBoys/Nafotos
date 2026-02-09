@@ -61,3 +61,8 @@ export interface Folder {
   created_at: string
   updated_at: string
 }
+
+export interface YearInfo {
+  year: number
+  count: number
+}

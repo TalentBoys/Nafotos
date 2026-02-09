@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { File, Album, Tag, MountPoint, PaginatedResponse, User } from '@/types'
+import type { File, Album, Tag, MountPoint, PaginatedResponse, User, YearInfo } from '@/types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -26,8 +26,11 @@ export const fileAPI = {
   getFileById: (id: number) =>
     api.get<File>(`/files/${id}`),
 
-  getTimeline: (page = 1, limit = 50) =>
-    api.get<PaginatedResponse<File>>('/timeline', { params: { page, limit } }),
+  getTimeline: (page = 1, limit = 50, year?: number) =>
+    api.get<PaginatedResponse<File>>('/timeline', { params: { page, limit, year } }),
+
+  getTimelineYears: () =>
+    api.get<{ years: YearInfo[] }>('/timeline/years'),
 
   searchFiles: (query: string) =>
     api.get<{ files: File[] }>('/search', { params: { q: query } }),

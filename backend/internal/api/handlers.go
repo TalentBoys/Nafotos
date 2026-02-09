@@ -130,6 +130,7 @@ func (h *Handler) GetTimeline(c *fiber.Ctx) error {
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "50"))
+	year := c.Query("year", "")
 	offset := (page - 1) * limit
 
 	isServerOwner := user.Role == "server_owner"
@@ -143,10 +144,15 @@ func (h *Handler) GetTimeline(c *fiber.Ctx) error {
 		                pm.width, pm.height, pm.taken_at
 		         FROM files f
 		         LEFT JOIN photo_metadata pm ON f.id = pm.file_id
-		         WHERE pm.taken_at IS NOT NULL
-		         ORDER BY pm.taken_at DESC
-		         LIMIT ? OFFSET ?`
-		args = []interface{}{limit, offset}
+		         WHERE pm.taken_at IS NOT NULL`
+
+		if year != "" {
+			query += " AND strftime('%Y', pm.taken_at) = ?"
+			args = append(args, year)
+		}
+
+		query += " ORDER BY pm.taken_at DESC LIMIT ? OFFSET ?"
+		args = append(args, limit, offset)
 	} else {
 		// Regular users can only see files they have permission for
 		query = `SELECT DISTINCT f.id, f.filename, f.file_type, f.size, f.created_at, f.updated_at,
@@ -156,10 +162,16 @@ func (h *Handler) GetTimeline(c *fiber.Ctx) error {
 		         JOIN file_folder_mappings ffm ON f.id = ffm.file_id
 		         JOIN permission_group_folders pgf ON ffm.folder_id = pgf.folder_id
 		         JOIN permission_group_permissions pgp ON pgf.permission_group_id = pgp.permission_group_id
-		         WHERE pm.taken_at IS NOT NULL AND pgp.user_id = ?
-		         ORDER BY pm.taken_at DESC
-		         LIMIT ? OFFSET ?`
-		args = []interface{}{user.ID, limit, offset}
+		         WHERE pm.taken_at IS NOT NULL AND pgp.user_id = ?`
+		args = append(args, user.ID)
+
+		if year != "" {
+			query += " AND strftime('%Y', pm.taken_at) = ?"
+			args = append(args, year)
+		}
+
+		query += " ORDER BY pm.taken_at DESC LIMIT ? OFFSET ?"
+		args = append(args, limit, offset)
 	}
 
 	rows, err := h.db.Query(query, args...)
@@ -532,4 +544,67 @@ func (h *Handler) CreateAlbum(c *fiber.Ctx) error {
 	album.ID = id
 
 	return c.Status(201).JSON(album)
+}
+
+// GetTimelineYears returns available years for the timeline scrollbar
+func (h *Handler) GetTimelineYears(c *fiber.Ctx) error {
+	user := middleware.GetUser(c)
+	if user == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Authentication required",
+		})
+	}
+
+	isServerOwner := user.Role == "server_owner"
+
+	var query string
+	var args []interface{}
+
+	if isServerOwner {
+		// Server owner can see all years
+		query = `SELECT strftime('%Y', pm.taken_at) as year,
+		                COUNT(*) as count
+		         FROM files f
+		         INNER JOIN photo_metadata pm ON f.id = pm.file_id
+		         WHERE pm.taken_at IS NOT NULL
+		         GROUP BY year
+		         ORDER BY year DESC`
+	} else {
+		// Regular users can only see years they have permission for
+		query = `SELECT strftime('%Y', pm.taken_at) as year,
+		                COUNT(DISTINCT f.id) as count
+		         FROM files f
+		         INNER JOIN photo_metadata pm ON f.id = pm.file_id
+		         JOIN file_folder_mappings ffm ON f.id = ffm.file_id
+		         JOIN permission_group_folders pgf ON ffm.folder_id = pgf.folder_id
+		         JOIN permission_group_permissions pgp ON pgf.permission_group_id = pgp.permission_group_id
+		         WHERE pm.taken_at IS NOT NULL AND pgp.user_id = ?
+		         GROUP BY year
+		         ORDER BY year DESC`
+		args = append(args, user.ID)
+	}
+
+	rows, err := h.db.Query(query, args...)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	type YearInfo struct {
+		Year  int `json:"year"`
+		Count int `json:"count"`
+	}
+
+	years := []YearInfo{}
+	for rows.Next() {
+		var yearStr string
+		var count int
+		if err := rows.Scan(&yearStr, &count); err != nil {
+			continue
+		}
+		year, _ := strconv.Atoi(yearStr)
+		years = append(years, YearInfo{Year: year, Count: count})
+	}
+
+	return c.JSON(fiber.Map{"years": years})
 }
