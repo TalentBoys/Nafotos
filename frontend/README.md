@@ -1,13 +1,13 @@
-# AwesomeSharing Frontend
+# nafotos Frontend
 
-A modern file sharing platform frontend built with React, TypeScript, and Vite.
+A modern photo management platform frontend for NAS, built with React, TypeScript, and Vite.
 
 [中文文档](./README-ZH_CN.md)
 
 ## Features
 
-- File and folder management with upload/download capabilities
-- Album and timeline views for media files
+- Photo and album management with upload/download capabilities
+- Timeline view for browsing photos by date
 - User authentication and authorization
 - Multi-language support (i18n)
 - Permission group management

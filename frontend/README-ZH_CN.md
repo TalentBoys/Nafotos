@@ -1,13 +1,13 @@
-# AwesomeSharing 前端
+# nafotos 前端
 
-基于 React、TypeScript 和 Vite 构建的现代化文件分享平台前端。
+为 NAS 设计的现代化照片管理平台前端，基于 React、TypeScript 和 Vite 构建。
 
 [English Documentation](./README.md)
 
 ## 功能特性
 
-- 文件和文件夹管理,支持上传/下载
-- 媒体文件的相册和时间轴视图
+- 照片和相册管理，支持上传/下载
+- 按日期浏览照片的时间轴视图
 - 用户认证和授权
 - 多语言支持 (i18n)
 - 权限组管理
